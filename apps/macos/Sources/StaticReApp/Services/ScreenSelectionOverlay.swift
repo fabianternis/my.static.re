@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import CoreGraphics
+@preconcurrency import ScreenCaptureKit
 
 @MainActor
 public final class ScreenSelectionOverlay {
@@ -15,60 +16,71 @@ public final class ScreenSelectionOverlay {
         self.completionHandler = completion
         self.closeOverlays()
 
-        // 1. Capture full screen image of each display using in-process CGWindowListCreateImage
-        let screens = NSScreen.screens
-        guard !screens.isEmpty else {
-            completion(nil)
-            return
-        }
+        Task { @MainActor in
+            do {
+                let shareableContent = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+                let screens = NSScreen.screens
 
-        for screen in screens {
-            let screenRect = screen.frame
-            // Convert to CG coordinates
-            let cgRect = CGRect(x: screenRect.origin.x, y: screenRect.origin.y, width: screenRect.width, height: screenRect.height)
+                guard !screens.isEmpty else {
+                    self.completionHandler?(nil)
+                    return
+                }
 
-            guard let cgImage = CGWindowListCreateImage(
-                cgRect,
-                .optionOnScreenOnly,
-                kCGNullWindowID,
-                [.bestResolution]
-            ) else {
-                continue
+                for screen in screens {
+                    let screenRect = screen.frame
+                    guard let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID,
+                          let scDisplay = shareableContent.displays.first(where: { $0.displayID == displayID }) ?? shareableContent.displays.first else {
+                        continue
+                    }
+
+                    let filter = SCContentFilter(display: scDisplay, excludingWindows: [])
+                    let config = SCStreamConfiguration()
+                    config.width = scDisplay.width
+                    config.height = scDisplay.height
+                    config.showsCursor = false
+
+                    let cgImage = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+
+                    let overlayWindow = NSWindow(
+                        contentRect: screenRect,
+                        styleMask: [.borderless],
+                        backing: .buffered,
+                        defer: false
+                    )
+                    overlayWindow.level = .screenSaver
+                    overlayWindow.isOpaque = false
+                    overlayWindow.backgroundColor = .clear
+                    overlayWindow.ignoresMouseEvents = false
+                    overlayWindow.hasShadow = false
+
+                    let view = SelectionCanvasView(
+                        frame: NSRect(origin: .zero, size: screenRect.size),
+                        fullScreenImage: cgImage,
+                        screenRect: screenRect
+                    ) { [weak self] croppedImageData in
+                        self?.closeOverlays()
+                        self?.completionHandler?(croppedImageData)
+                        self?.completionHandler = nil
+                    } onCancel: { [weak self] in
+                        self?.closeOverlays()
+                        self?.completionHandler?(nil)
+                        self?.completionHandler = nil
+                    }
+
+                    overlayWindow.contentView = view
+                    overlayWindow.makeKeyAndOrderFront(nil)
+                    self.overlayWindows.append(overlayWindow)
+                }
+
+                NSCursor.crosshair.push()
+                NSApp.activate(ignoringOtherApps: true)
+            } catch {
+                print("ScreenCaptureKit capture error: \(error)")
+                self.closeOverlays()
+                self.completionHandler?(nil)
+                self.completionHandler = nil
             }
-
-            let overlayWindow = NSWindow(
-                contentRect: screenRect,
-                styleMask: [.borderless],
-                backing: .buffered,
-                defer: false
-            )
-            overlayWindow.level = .screenSaver
-            overlayWindow.isOpaque = false
-            overlayWindow.backgroundColor = .clear
-            overlayWindow.ignoresMouseEvents = false
-            overlayWindow.hasShadow = false
-
-            let view = SelectionCanvasView(
-                frame: NSRect(origin: .zero, size: screenRect.size),
-                fullScreenImage: cgImage,
-                screenRect: screenRect
-            ) { [weak self] croppedImageData in
-                self?.closeOverlays()
-                self?.completionHandler?(croppedImageData)
-                self?.completionHandler = nil
-            } onCancel: { [weak self] in
-                self?.closeOverlays()
-                self?.completionHandler?(nil)
-                self?.completionHandler = nil
-            }
-
-            overlayWindow.contentView = view
-            overlayWindow.makeKeyAndOrderFront(nil)
-            overlayWindows.append(overlayWindow)
         }
-
-        NSCursor.crosshair.push()
-        NSApp.activate(ignoringOtherApps: true)
     }
 
     private func closeOverlays() {
