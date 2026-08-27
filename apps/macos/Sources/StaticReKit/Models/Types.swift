@@ -38,7 +38,7 @@ public struct ApiErrorDetail: Codable, Sendable {
     }
 }
 
-public struct ApiErrorResponse: Codable, Sendable, Error {
+public struct ApiErrorResponse: Codable, Sendable, LocalizedError {
     public let success: Bool
     public let error: ApiErrorDetail
 
@@ -47,7 +47,7 @@ public struct ApiErrorResponse: Codable, Sendable, Error {
         self.error = error
     }
 
-    public var localizedDescription: String {
+    public var errorDescription: String? {
         return "[\(error.code)] \(error.message)"
     }
 }
