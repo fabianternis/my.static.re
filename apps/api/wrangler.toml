@@ -22,9 +22,4 @@ enabled = true
 ENVIRONMENT = "production"
 PUBLIC_ASSET_BASE_URL = "https://my.static.re"
 R2_BUCKET_NAME = "my-static-re"
-
-# Required Secrets (set via Cloudflare Dashboard or `wrangler secret put <KEY>`):
-# - API_KEY: Secret key for authorizing private API access
-# - R2_ACCOUNT_ID: Cloudflare Account ID for S3 presigned URL generation
-# - R2_ACCESS_KEY_ID: Cloudflare R2 API token Access Key ID
-# - R2_SECRET_ACCESS_KEY: Cloudflare R2 API token Secret Access Key
+API_KEY = "secret-passphrase-xyz123"
