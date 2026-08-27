@@ -4,45 +4,50 @@ import { AUTH_HEADER_API_KEY, AUTH_HEADER_BEARER } from "@my-static-re/shared-ty
 import type { Env } from "../env.js";
 
 /**
- * Strict authentication middleware.
- * Inspects `X-API-Key` header or `Authorization: Bearer <token>` header.
- * Compares with configured API_KEY in Worker environment.
+ * Authentication middleware.
+ * Supports:
+ * - Header: `x-api-key: <key>`
+ * - Header: `Authorization: Bearer <key>`
+ * - Query param: `?api_key=<key>` or `?key=<key>`
  */
 export const requireAuth: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
   const configuredApiKey = c.env.API_KEY;
 
-  if (!configuredApiKey) {
-    const errorResponse: ApiErrorResponse = {
-      success: false,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "API_KEY secret is not configured on this server.",
-      },
-    };
-    return c.json(errorResponse, 500);
-  }
-
-  // Check X-API-Key header
+  // 1. Check X-API-Key header
   const apiKeyHeader = c.req.header(AUTH_HEADER_API_KEY);
 
-  // Check Authorization Bearer header
+  // 2. Check Authorization Bearer header
   const authHeader = c.req.header(AUTH_HEADER_BEARER);
   let bearerToken: string | undefined;
   if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
     bearerToken = authHeader.slice(7).trim();
   }
 
-  const providedToken = apiKeyHeader || bearerToken;
+  // 3. Check Query parameter fallback (useful for browser viewing)
+  const queryKey = c.req.query("api_key") || c.req.query("key");
+
+  const providedToken = apiKeyHeader || bearerToken || queryKey;
 
   if (!providedToken) {
     const errorResponse: ApiErrorResponse = {
       success: false,
       error: {
         code: "UNAUTHORIZED",
-        message: "Missing authentication credentials. Provide 'x-api-key' or 'Authorization: Bearer <token>' header.",
+        message: "Missing authentication credentials. Provide 'x-api-key' header, 'Authorization: Bearer <token>', or '?key=<key>' query param.",
       },
     };
     return c.json(errorResponse, 401);
+  }
+
+  if (!configuredApiKey) {
+    const errorResponse: ApiErrorResponse = {
+      success: false,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "API_KEY secret is not configured on this server. Please add API_KEY in Cloudflare Dashboard -> Variables and Secrets.",
+      },
+    };
+    return c.json(errorResponse, 500);
   }
 
   // Support multiple comma-separated keys if configured

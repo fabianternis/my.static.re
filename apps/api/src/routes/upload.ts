@@ -6,9 +6,67 @@ import { createPresignedUploadUrl } from "../services/presigner.js";
 
 export const uploadRouter = new Hono<{ Bindings: Env }>();
 
-// Enforce strict authentication on upload endpoints
+// Enforce authentication on all upload routes
 uploadRouter.use("*", requireAuth);
 
+/**
+ * Direct Worker Binary Upload (Uses native R2 binding)
+ */
+uploadRouter.put("/direct/:key{.+}", async (c) => {
+  const rawKey = c.req.param("key");
+  const key = decodeURIComponent(rawKey);
+  const contentType = c.req.header("content-type") || "application/octet-stream";
+
+  try {
+    const body = await c.req.arrayBuffer();
+
+    if (!c.env.ASSETS_BUCKET) {
+      const errorResponse: ApiErrorResponse = {
+        success: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "R2 bucket binding ASSETS_BUCKET is not connected.",
+        },
+      };
+      return c.json(errorResponse, 500);
+    }
+
+    await c.env.ASSETS_BUCKET.put(key, body, {
+      httpMetadata: {
+        contentType,
+      },
+    });
+
+    const publicBaseUrl = (c.env.PUBLIC_ASSET_BASE_URL || "https://my.static.re").replace(/\/+$/, "");
+
+    return c.json(
+      {
+        success: true,
+        data: {
+          key,
+          size: body.byteLength,
+          contentType,
+          publicUrl: `${publicBaseUrl}/${key}`,
+        },
+      },
+      201
+    );
+  } catch (err) {
+    console.error("Direct upload error:", err);
+    const errorResponse: ApiErrorResponse = {
+      success: false,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: err instanceof Error ? err.message : "Direct upload failed.",
+      },
+    };
+    return c.json(errorResponse, 500);
+  }
+});
+
+/**
+ * Request Presigned Upload URL
+ */
 uploadRouter.post("/presign", async (c) => {
   let body: Partial<PresignUploadRequest>;
 
@@ -49,6 +107,9 @@ uploadRouter.post("/presign", async (c) => {
   }
 
   try {
+    const url = new URL(c.req.url);
+    const apiBaseUrl = `${url.protocol}//${url.host}`;
+
     const response = await createPresignedUploadUrl(c.env, {
       fileName: body.fileName,
       contentType: body.contentType,
@@ -56,6 +117,7 @@ uploadRouter.post("/presign", async (c) => {
       contentLength: body.contentLength,
       customMetadata: body.customMetadata,
       expiresInSeconds: body.expiresInSeconds,
+      apiBaseUrl,
     });
 
     return c.json(response, 201);

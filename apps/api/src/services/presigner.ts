@@ -10,13 +10,13 @@ export interface GeneratePresignedUrlParams {
   contentLength?: number;
   customMetadata?: Record<string, string>;
   expiresInSeconds?: number;
+  apiBaseUrl?: string;
 }
 
 /**
  * Sanitizes a filename to create a safe R2 object key
  */
 export function sanitizeFileName(fileName: string): string {
-  // Remove leading slashes and unsafe characters
   const clean = fileName
     .trim()
     .replace(/^(\.\.[\/\\])+/, "")
@@ -44,7 +44,9 @@ export function generateObjectKey(fileName: string, explicitKey?: string): strin
 }
 
 /**
- * Generates an R2 S3-compatible presigned URL for direct asset upload.
+ * Generates an upload URL:
+ * 1. Uses S3 Presigned URL if R2 credentials are provided.
+ * 2. Falls back to direct Worker stream upload (via R2 binding) if S3 credentials are not set.
  */
 export async function createPresignedUploadUrl(
   env: Env,
@@ -56,55 +58,74 @@ export async function createPresignedUploadUrl(
   const bucketName = env.R2_BUCKET_NAME || "my-static-re";
   const publicBaseUrl = (env.PUBLIC_ASSET_BASE_URL || "https://my.static.re").replace(/\/+$/, "");
 
-  if (!accountId || !accessKeyId || !secretAccessKey) {
-    throw new Error(
-      "Missing R2 S3 credentials (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID or R2_ACCESS_KEY, R2_SECRET_ACCESS_KEY). " +
-      "Please configure these secrets in Cloudflare Dashboard."
-    );
-  }
-
   const key = generateObjectKey(params.fileName, params.key);
   const expiresIn = Math.min(Math.max(params.expiresInSeconds || 3600, 60), 86400);
-
-  const s3Client = new S3Client({
-    region: "auto",
-    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId,
-      secretAccessKey,
-    },
-  });
-
-  const command = new PutObjectCommand({
-    Bucket: bucketName,
-    Key: key,
-    ContentType: params.contentType,
-    ContentLength: params.contentLength,
-    Metadata: params.customMetadata,
-  });
-
-  const uploadUrl = await getSignedUrl(s3Client, command, {
-    expiresIn,
-  });
-
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
   const publicUrl = `${publicBaseUrl}/${key}`;
+
+  // Mode 1: S3 Presigned URL (when S3 tokens are present)
+  if (accountId && accessKeyId && secretAccessKey) {
+    const s3Client = new S3Client({
+      region: "auto",
+      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+    });
+
+    const command = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+      ContentType: params.contentType,
+      ContentLength: params.contentLength,
+      Metadata: params.customMetadata,
+    });
+
+    const uploadUrl = await getSignedUrl(s3Client, command, {
+      expiresIn,
+    });
+
+    const headers: Record<string, string> = {
+      "Content-Type": params.contentType,
+    };
+
+    if (params.customMetadata) {
+      for (const [metaKey, metaVal] of Object.entries(params.customMetadata)) {
+        headers[`x-amz-meta-${metaKey.toLowerCase()}`] = metaVal;
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        key,
+        uploadUrl,
+        method: "PUT",
+        headers,
+        publicUrl,
+        expiresAt,
+        expiresInSeconds: expiresIn,
+      },
+    };
+  }
+
+  // Mode 2: Direct Worker R2 Ingestion (Zero external S3 credentials required)
+  const apiBase = (params.apiBaseUrl || "https://my-api.static.re").replace(/\/+$/, "");
+  const directUploadUrl = `${apiBase}/upload/direct/${encodeURIComponent(key)}`;
 
   const headers: Record<string, string> = {
     "Content-Type": params.contentType,
   };
-
-  if (params.customMetadata) {
-    for (const [metaKey, metaVal] of Object.entries(params.customMetadata)) {
-      headers[`x-amz-meta-${metaKey.toLowerCase()}`] = metaVal;
-    }
+  if (env.API_KEY) {
+    headers["x-api-key"] = env.API_KEY.split(",")[0]?.trim() || "";
   }
 
   return {
     success: true,
     data: {
       key,
-      uploadUrl,
+      uploadUrl: directUploadUrl,
       method: "PUT",
       headers,
       publicUrl,
