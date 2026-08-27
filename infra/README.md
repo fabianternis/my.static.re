@@ -21,13 +21,13 @@ This directory documents and contains infrastructure-as-code (IaC) configuration
 ## Cloudflare Resources
 
 1. **R2 Bucket:**
-   - Bucket Name: `my-static-re-assets`
+   - Bucket Name: `my-static-re`
    - Custom Domain: `my.static.re` (Public Read delivery)
 
 2. **Cloudflare Worker (`asset-api`):**
    - Managed via `apps/api/wrangler.toml`
    - Custom Domain / Route: `my-api.static.re/*`
-   - R2 Binding: `ASSETS_BUCKET -> my-static-re-assets`
+   - R2 Binding: `ASSETS_BUCKET -> my-static-re`
 
 3. **Required Secrets (Worker):**
    Set via `pnpm --filter @my-static-re/api exec wrangler secret put <KEY>`:

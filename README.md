@@ -31,7 +31,7 @@ Monorepo for `my.static.re` asset delivery service, Cloudflare Worker ingestion 
 - **Package Manager:** `pnpm`
 - **Monorepo Tool:** Turborepo (`turbo`)
 - **API Backend:** Cloudflare Workers (TypeScript, Hono framework)
-- **Object Storage:** Cloudflare R2 (`my-static-re-assets`)
+- **Object Storage:** Cloudflare R2 (`my-static-re`)
 - **Public CDN:** `my.static.re` (Direct R2 custom domain mapping)
 - **API Domain:** `my-api.static.re` (Worker custom domain route)
 - **Shared Code:** TypeScript (`@my-static-re/shared-types`, `@my-static-re/config`)

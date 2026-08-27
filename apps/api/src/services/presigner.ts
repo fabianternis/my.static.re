@@ -53,7 +53,7 @@ export async function createPresignedUploadUrl(
   const accountId = env.R2_ACCOUNT_ID;
   const accessKeyId = env.R2_ACCESS_KEY_ID;
   const secretAccessKey = env.R2_SECRET_ACCESS_KEY;
-  const bucketName = env.R2_BUCKET_NAME || "my-static-re-assets";
+  const bucketName = env.R2_BUCKET_NAME || "my-static-re";
   const publicBaseUrl = (env.PUBLIC_ASSET_BASE_URL || "https://my.static.re").replace(/\/+$/, "");
 
   if (!accountId || !accessKeyId || !secretAccessKey) {

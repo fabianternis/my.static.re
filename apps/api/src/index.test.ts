@@ -15,7 +15,7 @@ const mockEnv: Env = {
   R2_ACCOUNT_ID: "test-account-id",
   R2_ACCESS_KEY_ID: "test-access-key-id",
   R2_SECRET_ACCESS_KEY: "test-secret-access-key",
-  R2_BUCKET_NAME: "my-static-re-assets",
+  R2_BUCKET_NAME: "my-static-re",
   PUBLIC_ASSET_BASE_URL: "https://my.static.re",
   ENVIRONMENT: "test",
 };

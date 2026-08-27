@@ -11,7 +11,7 @@ routes = [
 # R2 Bucket bindings
 [[r2_buckets]]
 binding = "ASSETS_BUCKET"
-bucket_name = "my-static-re-assets"
+bucket_name = "my-static-re"
 
 # Observability and Logs
 [observability]
@@ -21,7 +21,7 @@ enabled = true
 [vars]
 ENVIRONMENT = "production"
 PUBLIC_ASSET_BASE_URL = "https://my.static.re"
-R2_BUCKET_NAME = "my-static-re-assets"
+R2_BUCKET_NAME = "my-static-re"
 
 # Required Secrets (set via Cloudflare Dashboard or `wrangler secret put <KEY>`):
 # - API_KEY: Secret key for authorizing private API access
