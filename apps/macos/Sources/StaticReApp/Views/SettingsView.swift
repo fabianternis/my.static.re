@@ -6,44 +6,93 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        Form {
-            Section("API Credentials") {
-                SecureField("API Key", text: $viewModel.config.apiKey)
-                    .textFieldStyle(.roundedBorder)
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Settings")
+                .font(.title2)
+                .fontWeight(.bold)
 
-                Text("Obtain your API Key from Cloudflare Worker secrets or system administrator.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            Section("Endpoint Configuration") {
-                TextField("API Base URL", text: $viewModel.config.apiBaseUrl)
-                    .textFieldStyle(.roundedBorder)
-
-                TextField("Public Base URL", text: $viewModel.config.publicBaseUrl)
-                    .textFieldStyle(.roundedBorder)
-            }
-
-            Section("Connection Status") {
-                HStack {
-                    Text("API Status:")
-                    Spacer()
-                    Text(viewModel.healthStatus)
-                        .foregroundColor(viewModel.healthStatus.contains("OK") ? .green : .red)
+            GroupBox("API Authentication") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("API Key:")
+                        .font(.caption)
                         .fontWeight(.semibold)
-                }
 
-                Button("Test Connection") {
-                    Task {
-                        await viewModel.checkHealth()
+                    SecureField("Enter API Key (secret)", text: $viewModel.config.apiKey)
+                        .textFieldStyle(.roundedBorder)
+
+                    Text("This key must match the API_KEY secret configured in your Cloudflare Worker.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                .padding(8)
+            }
+
+            GroupBox("Endpoints") {
+                VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("API Base URL (Ingestion & Metadata):")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+
+                        TextField("https://my-api.static.re", text: $viewModel.config.apiBaseUrl)
+                            .textFieldStyle(.roundedBorder)
+
+                        Text("Use http://127.0.0.1:8787 for local dev worker.")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Public Delivery Base URL (CDN Read):")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+
+                        TextField("https://my.static.re", text: $viewModel.config.publicBaseUrl)
+                            .textFieldStyle(.roundedBorder)
                     }
                 }
-                .controlSize(.small)
+                .padding(8)
+            }
+
+            GroupBox("Connection Diagnostics") {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("API Status:")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                        Spacer()
+                        Text(viewModel.healthStatus)
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(viewModel.healthStatus.contains("OK") ? .green : (viewModel.healthStatus.contains("Testing") ? .orange : .red))
+                    }
+
+                    if !viewModel.healthDetails.isEmpty {
+                        Text(viewModel.healthDetails)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Button("Test Connection Now") {
+                        Task {
+                            viewModel.saveSettings()
+                            await viewModel.checkHealth()
+                        }
+                    }
+                    .controlSize(.small)
+                }
+                .padding(8)
             }
 
             HStack {
+                Button("Close") {
+                    dismiss()
+                }
+                .buttonStyle(.bordered)
+
                 Spacer()
-                Button("Save Settings") {
+
+                Button("Save & Apply") {
                     viewModel.saveSettings()
                     dismiss()
                 }
@@ -51,7 +100,7 @@ struct SettingsView: View {
             }
             .padding(.top, 8)
         }
-        .padding(20)
-        .frame(width: 420)
+        .padding(24)
+        .frame(width: 440)
     }
 }

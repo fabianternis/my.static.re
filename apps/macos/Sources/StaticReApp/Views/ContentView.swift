@@ -7,39 +7,37 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            // Header
-            HStack {
+            // Header Bar
+            HStack(spacing: 10) {
                 Image(systemName: "cloud.fill")
                     .foregroundColor(.accentColor)
                     .imageScale(.large)
 
-                Text("my.static.re")
-                    .font(.headline)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("my.static.re")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                    Text(viewModel.config.apiBaseUrl)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
 
                 Spacer()
 
                 Button(action: {
                     showingSettings = true
                 }) {
-                    Image(systemName: "gearshape")
+                    Label("Settings", systemImage: "gearshape")
                 }
-                .buttonStyle(.plain)
-                .help("Settings")
-
-                Button(action: {
-                    NSApplication.shared.terminate(nil)
-                }) {
-                    Image(systemName: "power")
-                }
-                .buttonStyle(.plain)
-                .help("Quit Application")
+                .controlSize(.small)
             }
             .padding(.horizontal, 4)
 
-            // Drop zone
+            // Drop zone for uploads
             DropZoneView(viewModel: viewModel)
 
-            // Upload Status / Progress
+            // Progress / Status notification
             if viewModel.isUploading {
                 HStack(spacing: 8) {
                     ProgressView()
@@ -48,31 +46,46 @@ struct ContentView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
+                .padding(.vertical, 4)
             } else if !viewModel.uploadProgressMessage.isEmpty {
-                Text(viewModel.uploadProgressMessage)
-                    .font(.caption)
-                    .foregroundColor(.green)
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Text(viewModel.uploadProgressMessage)
+                        .font(.caption)
+                        .foregroundColor(.green)
+                }
+                .padding(.vertical, 4)
             }
 
             // Error Banner
             if let error = viewModel.errorMessage {
-                HStack {
+                HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.red)
                     Text(error)
                         .font(.caption)
                         .foregroundColor(.red)
-                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                    Button(action: {
+                        viewModel.errorMessage = nil
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .padding(8)
-                .background(Color.red.opacity(0.1))
-                .cornerRadius(6)
+                .padding(10)
+                .background(Color.red.opacity(0.12))
+                .cornerRadius(8)
             }
 
             Divider()
 
-            // Recent Uploads List
-            VStack(alignment: .leading, spacing: 8) {
+            // Recent Uploads Section
+            VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text("Recent Assets")
                         .font(.subheadline)
@@ -85,18 +98,24 @@ struct ContentView: View {
                             await viewModel.fetchRecentUploads()
                         }
                     }) {
-                        Image(systemName: "arrow.clockwise")
+                        Label("Refresh", systemImage: "arrow.clockwise")
                     }
                     .buttonStyle(.plain)
-                    .help("Refresh")
+                    .font(.caption)
+                    .foregroundColor(.accentColor)
                 }
 
                 if viewModel.recentUploads.isEmpty {
-                    Text("No recent uploads found.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.vertical, 12)
+                    VStack(spacing: 6) {
+                        Image(systemName: "tray")
+                            .font(.title2)
+                            .foregroundColor(.secondary.opacity(0.5))
+                        Text(viewModel.config.apiKey.isEmpty ? "Configure your API Key in Settings to view uploaded assets." : "No uploaded assets found.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 120)
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 8) {
@@ -104,13 +123,14 @@ struct ContentView: View {
                                 AssetRowView(asset: asset, viewModel: viewModel)
                             }
                         }
+                        .padding(.vertical, 4)
                     }
-                    .frame(maxHeight: 180)
+                    .frame(maxHeight: 220)
                 }
             }
         }
-        .padding(16)
-        .frame(width: 360)
+        .padding(20)
+        .frame(minWidth: 400, maxWidth: .infinity)
         .sheet(isPresented: $showingSettings) {
             SettingsView(viewModel: viewModel)
         }
@@ -123,9 +143,10 @@ struct AssetRowView: View {
     @State private var copied: Bool = false
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Image(systemName: iconForContentType(asset.contentType))
                 .foregroundColor(.secondary)
+                .frame(width: 20)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(asset.key.components(separatedBy: "/").last ?? asset.key)
@@ -133,9 +154,10 @@ struct AssetRowView: View {
                     .fontWeight(.medium)
                     .lineLimit(1)
 
-                Text(formatSize(asset.size))
+                Text("\(formatSize(asset.size)) • \(asset.key)")
                     .font(.caption2)
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -147,10 +169,15 @@ struct AssetRowView: View {
                     copied = false
                 }
             }) {
-                Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                HStack(spacing: 4) {
+                    Image(systemName: copied ? "checkmark" : "link")
+                    Text(copied ? "Copied" : "Copy")
+                }
+                .font(.caption2)
             }
-            .buttonStyle(.borderless)
-            .help("Copy Public URL")
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .help("Copy Public URL to Clipboard")
 
             Button(action: {
                 Task {
@@ -160,12 +187,12 @@ struct AssetRowView: View {
                 Image(systemName: "trash")
                     .foregroundColor(.red.opacity(0.8))
             }
-            .buttonStyle(.borderless)
-            .help("Delete Asset")
+            .buttonStyle(.plain)
+            .help("Delete Asset from R2")
         }
-        .padding(6)
-        .background(Color.secondary.opacity(0.08))
-        .cornerRadius(6)
+        .padding(8)
+        .background(Color.secondary.opacity(0.06))
+        .cornerRadius(8)
     }
 
     private func iconForContentType(_ type: String) -> String {

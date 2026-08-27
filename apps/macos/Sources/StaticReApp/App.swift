@@ -1,20 +1,29 @@
 import SwiftUI
 import AppKit
 
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+}
+
 @main
 struct StaticReApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var viewModel = AppViewModel()
 
     var body: some Scene {
-        MenuBarExtra("my.static.re", systemImage: "cloud.fill") {
+        WindowGroup("my.static.re - Asset Ingestion", id: "main-window") {
             ContentView(viewModel: viewModel)
-        }
-        .menuBarExtraStyle(.window)
-
-        Window("my.static.re Assets", id: "main-window") {
-            ContentView(viewModel: viewModel)
-                .frame(minWidth: 400, minHeight: 520)
+                .frame(minWidth: 420, minHeight: 560)
         }
         .windowResizability(.contentSize)
+
+        MenuBarExtra("my.static.re", systemImage: "cloud.fill") {
+            ContentView(viewModel: viewModel)
+                .frame(width: 380)
+        }
+        .menuBarExtraStyle(.window)
     }
 }

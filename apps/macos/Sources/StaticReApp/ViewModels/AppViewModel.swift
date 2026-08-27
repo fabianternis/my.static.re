@@ -10,9 +10,10 @@ public final class AppViewModel: ObservableObject {
     @Published public var uploadProgressMessage: String = ""
     @Published public var errorMessage: String?
     @Published public var recentUploads: [AssetMetadata] = []
-    @Published public var healthStatus: String = "Unknown"
+    @Published public var healthStatus: String = "Checking..."
+    @Published public var healthDetails: String = ""
 
-    private let client: StaticReClient
+    private var client: StaticReClient
     private let configManager: ConfigManager
 
     public init() {
@@ -30,6 +31,7 @@ public final class AppViewModel: ObservableObject {
     public func saveSettings() {
         do {
             try configManager.saveConfig(config)
+            self.client = StaticReClient(config: self.config)
             self.errorMessage = nil
             Task {
                 await self.checkHealth()
@@ -41,26 +43,35 @@ public final class AppViewModel: ObservableObject {
     }
 
     public func checkHealth() async {
+        self.healthStatus = "Testing..."
         do {
             let health = try await client.checkHealth()
-            self.healthStatus = "\(health.status.uppercased()) (\(health.services.r2Bucket))"
+            self.healthStatus = "\(health.status.uppercased())"
+            self.healthDetails = "R2: \(health.services.r2Bucket) | Env: \(health.environment) | v\(health.version)"
         } catch {
             self.healthStatus = "Unreachable"
+            self.healthDetails = error.localizedDescription
         }
     }
 
     public func fetchRecentUploads() async {
-        guard !config.apiKey.isEmpty else { return }
+        guard !config.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return
+        }
         do {
             let res = try await client.listAssets(limit: 20)
             self.recentUploads = res.data.objects
         } catch {
-            // Silently ignore or set error if relevant
             print("Failed to fetch uploads: \(error)")
         }
     }
 
     public func uploadFile(url: URL) async {
+        guard !config.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            self.errorMessage = "API Key is required. Please enter your API Key in Settings."
+            return
+        }
+
         isUploading = true
         uploadProgressMessage = "Uploading \(url.lastPathComponent)..."
         errorMessage = nil
@@ -70,7 +81,7 @@ public final class AppViewModel: ObservableObject {
             let publicUrl = response.data.publicUrl
 
             copyToClipboard(publicUrl)
-            uploadProgressMessage = "Uploaded! Copied to clipboard."
+            uploadProgressMessage = "Uploaded! Link copied to clipboard."
 
             // Refresh recent list
             await fetchRecentUploads()
@@ -83,10 +94,15 @@ public final class AppViewModel: ObservableObject {
     }
 
     public func uploadFromClipboard() async {
+        guard !config.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            self.errorMessage = "API Key is required. Please enter your API Key in Settings."
+            return
+        }
+
         let pasteboard = NSPasteboard.general
         guard let images = pasteboard.readObjects(forClasses: [NSImage.self], options: nil) as? [NSImage],
               let image = images.first else {
-            self.errorMessage = "No image found on clipboard."
+            self.errorMessage = "No image found on your clipboard. Take a screenshot (⌘+Shift+Control+4) and try again."
             return
         }
 
@@ -114,7 +130,7 @@ public final class AppViewModel: ObservableObject {
             _ = try await client.deleteAsset(key: key)
             self.recentUploads.removeAll(where: { $0.key == key })
         } catch {
-            self.errorMessage = "Failed to delete: \(error.localizedDescription)"
+            self.errorMessage = "Failed to delete asset: \(error.localizedDescription)"
         }
     }
 
