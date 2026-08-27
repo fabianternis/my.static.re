@@ -9,6 +9,8 @@ node_modules/
 dist/
 build/
 out/
+.build/
+.swiftpm/
 
 # Wrangler / Cloudflare
 .wrangler/
