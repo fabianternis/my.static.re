@@ -34,7 +34,7 @@ app.route("/assets", assetsRouter);
 // Root informational endpoint
 app.get("/", (c) => {
   return c.json({
-    service: "asset-api",
+    service: "my-api-static-re",
     domain: "my-api.static.re",
     deliveryDomain: "my.static.re",
     endpoints: {
