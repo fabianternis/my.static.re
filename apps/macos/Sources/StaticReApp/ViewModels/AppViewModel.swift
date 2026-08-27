@@ -219,7 +219,7 @@ public final class AppViewModel: ObservableObject {
             self.lastUploadedAsset = asset
 
             showToast(
-                title: "Upload Complete! 📋",
+                title: "Upload Complete",
                 message: "Public link copied to clipboard:\n\(publicUrl)",
                 isError: false
             )

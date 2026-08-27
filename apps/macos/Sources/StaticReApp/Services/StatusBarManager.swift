@@ -41,7 +41,7 @@ public final class StatusBarManager: NSObject {
 
         // 1. Screenshot Capture
         let screenshotItem = NSMenuItem(
-            title: "📸  Capture Screenshot Selection",
+            title: "Capture Screenshot Selection",
             action: #selector(captureScreenshotAction),
             keyEquivalent: "s"
         )
@@ -51,7 +51,7 @@ public final class StatusBarManager: NSObject {
 
         // 2. Paste from Clipboard
         let pasteItem = NSMenuItem(
-            title: "📋  Upload from Clipboard (⌘V)",
+            title: "Upload from Clipboard (⌘V)",
             action: #selector(pasteClipboardAction),
             keyEquivalent: "v"
         )
@@ -63,7 +63,7 @@ public final class StatusBarManager: NSObject {
 
         // 3. Open Main Window
         let openWindowItem = NSMenuItem(
-            title: "🪟  Open StaticRe Window",
+            title: "Open StaticRe Window",
             action: #selector(openMainWindowAction),
             keyEquivalent: "o"
         )
@@ -71,7 +71,7 @@ public final class StatusBarManager: NSObject {
         menu.addItem(openWindowItem)
 
         // 4. Connection Status
-        let statusTitle = vm.healthStatus.contains("OK") ? "🟢  Connected (\(vm.config.apiBaseUrl))" : "🔴  API Offline"
+        let statusTitle = vm.healthStatus.contains("OK") ? "Status: Connected (\(vm.config.apiBaseUrl))" : "Status: API Offline"
         let statusMenuItem = NSMenuItem(title: statusTitle, action: nil, keyEquivalent: "")
         statusMenuItem.isEnabled = false
         menu.addItem(statusMenuItem)
@@ -88,14 +88,14 @@ public final class StatusBarManager: NSObject {
                 subItem.target = self
                 recentMenu.addItem(subItem)
             }
-            let recentParent = NSMenuItem(title: "📂  Recent Uploads", action: nil, keyEquivalent: "")
+            let recentParent = NSMenuItem(title: "Recent Uploads", action: nil, keyEquivalent: "")
             recentParent.submenu = recentMenu
             menu.addItem(recentParent)
         }
 
         // 6. Settings
         let settingsItem = NSMenuItem(
-            title: "⚙️  Settings...",
+            title: "Settings...",
             action: #selector(openSettingsAction),
             keyEquivalent: ","
         )
