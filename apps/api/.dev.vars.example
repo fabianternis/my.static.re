@@ -1,0 +1,8 @@
+# Local development secrets for Cloudflare Worker
+API_KEY=local-dev-secret-key-12345
+R2_ACCOUNT_ID=your_cloudflare_account_id
+R2_ACCESS_KEY_ID=your_r2_access_key_id
+R2_SECRET_ACCESS_KEY=your_r2_secret_access_key
+PUBLIC_ASSET_BASE_URL=https://my.static.re
+R2_BUCKET_NAME=my-static-re-assets
+ENVIRONMENT=development

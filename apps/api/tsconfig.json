@@ -1,0 +1,8 @@
+{
+  "extends": "@my-static-re/config/tsconfig.worker.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler"
+  },
+  "include": ["src/**/*"]
+}
