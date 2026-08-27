@@ -2,7 +2,11 @@
   "extends": "@my-static-re/config/tsconfig.worker.json",
   "compilerOptions": {
     "module": "ESNext",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@my-static-re/shared-types": ["../../packages/shared-types/src/index.ts"]
+    }
   },
   "include": ["src/**/*"]
 }
