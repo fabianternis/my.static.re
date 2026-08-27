@@ -20,5 +20,7 @@
     <true/>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>StaticRe requires screen recording permissions to capture and upload screenshots directly to your storage.</string>
 </dict>
 </plist>

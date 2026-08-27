@@ -27,5 +27,9 @@ chmod +x "$MACOS_DIR/StaticReApp"
 # Copy Info.plist
 cp "$SCRIPT_DIR/Info.plist" "$CONTENTS_DIR/Info.plist"
 
+# Ad-hoc code sign bundle for persistent macOS TCC permissions
+echo "==> Code signing bundle for TCC Screen Recording permissions..."
+codesign --force --deep -s - "$BUNDLE_DIR"
+
 echo "==> Successfully created $BUNDLE_DIR"
 echo "You can launch it with: open \"$BUNDLE_DIR\""
