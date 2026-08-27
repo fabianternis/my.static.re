@@ -46,13 +46,13 @@ struct DropZoneView: View {
                 }
 
                 // Action Buttons
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     Button(action: {
                         Task {
                             await viewModel.uploadFromClipboard()
                         }
                     }) {
-                        Label("Paste from Clipboard", systemImage: "doc.on.clipboard.fill")
+                        Label("Paste (⌘V)", systemImage: "doc.on.clipboard.fill")
                             .fontWeight(.medium)
                     }
                     .buttonStyle(.borderedProminent)
@@ -60,9 +60,24 @@ struct DropZoneView: View {
                     .keyboardShortcut("v", modifiers: .command)
 
                     Button(action: {
+                        ScreenshotManager.shared.captureInteractiveScreenshot { tempUrl in
+                            Task { @MainActor in
+                                await viewModel.uploadFile(url: tempUrl)
+                                try? FileManager.default.removeItem(at: tempUrl)
+                            }
+                        }
+                    }) {
+                        Label("Screenshot", systemImage: "camera.fill")
+                            .fontWeight(.medium)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                    .keyboardShortcut("s", modifiers: [.command, .shift])
+
+                    Button(action: {
                         selectAndUploadFile()
                     }) {
-                        Label("Browse Files", systemImage: "folder.badge.plus")
+                        Label("Browse", systemImage: "folder.badge.plus")
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.regular)
