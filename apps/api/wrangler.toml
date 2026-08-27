@@ -1,11 +1,11 @@
 name = "asset-api"
 main = "src/index.ts"
-compatibility_date = "2024-04-05"
+compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-# Route mapping for Cloudflare Worker custom domain
+# Custom Domain mapping for Worker
 routes = [
-  { pattern = "my-api.static.re/*", zone_name = "static.re" }
+  { pattern = "my-api.static.re", custom_domain = true }
 ]
 
 # R2 Bucket bindings
@@ -13,13 +13,17 @@ routes = [
 binding = "ASSETS_BUCKET"
 bucket_name = "my-static-re-assets"
 
+# Observability and Logs
+[observability]
+enabled = true
+
 # Environment variables
 [vars]
 ENVIRONMENT = "production"
 PUBLIC_ASSET_BASE_URL = "https://my.static.re"
 R2_BUCKET_NAME = "my-static-re-assets"
 
-# Secrets required (configured via `wrangler secret put <KEY>`):
+# Required Secrets (set via Cloudflare Dashboard or `wrangler secret put <KEY>`):
 # - API_KEY: Secret key for authorizing private API access
 # - R2_ACCOUNT_ID: Cloudflare Account ID for S3 presigned URL generation
 # - R2_ACCESS_KEY_ID: Cloudflare R2 API token Access Key ID
