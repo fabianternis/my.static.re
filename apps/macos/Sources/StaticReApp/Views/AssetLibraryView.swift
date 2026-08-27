@@ -84,18 +84,19 @@ struct AssetCardView: View {
             // Icon
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.secondary.opacity(0.1))
-                    .frame(width: 38, height: 38)
+                    .fill(Color.secondary.opacity(isHovered ? 0.14 : 0.08))
+                    .frame(width: 40, height: 40)
                 Image(systemName: iconForContentType(asset.contentType))
                     .font(.system(size: 18))
                     .foregroundColor(.accentColor)
             }
 
-            // Details
+            // Details (Clickable area)
             VStack(alignment: .leading, spacing: 3) {
                 Text(fileName)
                     .font(.subheadline)
                     .fontWeight(.medium)
+                    .foregroundColor(.primary)
                     .lineLimit(1)
 
                 HStack(spacing: 6) {
@@ -131,9 +132,7 @@ struct AssetCardView: View {
                 .controlSize(.small)
 
                 Button(action: {
-                    if let url = URL(string: asset.publicUrl) {
-                        NSWorkspace.shared.open(url)
-                    }
+                    openInBrowser()
                 }) {
                     Image(systemName: "arrow.up.right.square")
                 }
@@ -152,11 +151,48 @@ struct AssetCardView: View {
         }
         .padding(10)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(isHovered ? Color.secondary.opacity(0.08) : Color.secondary.opacity(0.03))
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isHovered ? Color.secondary.opacity(0.12) : Color.secondary.opacity(0.04))
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(isHovered ? Color.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            openInBrowser()
+        }
+        .onTapGesture(count: 1) {
+            viewModel.copyToClipboard(asset.publicUrl, formatName: "Link")
+        }
         .onHover { hovering in
             isHovered = hovering
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+        .contextMenu {
+            Button("Copy Direct URL") {
+                viewModel.copyToClipboard(asset.publicUrl, formatName: "URL")
+            }
+            Button("Copy Markdown") {
+                let md = "![\(fileName)](\(asset.publicUrl))"
+                viewModel.copyToClipboard(md, formatName: "Markdown")
+            }
+            Button("Copy HTML Tag") {
+                let html = "<img src=\"\(asset.publicUrl)\" alt=\"\(fileName)\" />"
+                viewModel.copyToClipboard(html, formatName: "HTML")
+            }
+            Divider()
+            Button("Open in Browser") {
+                openInBrowser()
+            }
+            Divider()
+            Button("Delete Asset", role: .destructive) {
+                showingDeleteConfirm = true
+            }
         }
         .confirmationDialog("Delete Asset", isPresented: $showingDeleteConfirm) {
             Button("Delete \(fileName)", role: .destructive) {
@@ -167,6 +203,12 @@ struct AssetCardView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Are you sure you want to permanently delete '\(asset.key)' from your Cloudflare R2 bucket?")
+        }
+    }
+
+    private func openInBrowser() {
+        if let url = URL(string: asset.publicUrl) {
+            NSWorkspace.shared.open(url)
         }
     }
 

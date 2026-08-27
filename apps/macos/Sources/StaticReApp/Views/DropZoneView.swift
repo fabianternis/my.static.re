@@ -215,5 +215,40 @@ struct LastUploadCardView: View {
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(Color.secondary.opacity(0.12), lineWidth: 1)
         )
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            if let url = URL(string: asset.publicUrl) {
+                NSWorkspace.shared.open(url)
+            }
+        }
+        .onTapGesture(count: 1) {
+            viewModel.copyToClipboard(asset.publicUrl, formatName: "Link")
+        }
+        .onHover { hovering in
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+        .contextMenu {
+            Button("Copy Direct Link") {
+                viewModel.copyToClipboard(asset.publicUrl, formatName: "Link")
+            }
+            Button("Copy Markdown") {
+                let md = "![\(asset.key)](\(asset.publicUrl))"
+                viewModel.copyToClipboard(md, formatName: "Markdown")
+            }
+            Button("Copy HTML Tag") {
+                let html = "<img src=\"\(asset.publicUrl)\" alt=\"\(asset.key)\" />"
+                viewModel.copyToClipboard(html, formatName: "HTML")
+            }
+            Divider()
+            Button("Open in Browser") {
+                if let url = URL(string: asset.publicUrl) {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+        }
     }
 }
