@@ -8,13 +8,19 @@ public final class ScreenshotManager {
     private init() {}
 
     /**
-     * In-Process Interactive Screen Capture:
-     * Uses native CGWindowListCreateImage inside the app process (which holds the TCC Screen Recording grant),
-     * avoiding macOS child-process permission blocks.
+     * Interactive Screen Capture:
+     * Captures screen contents using in-process ScreenCaptureKit with fallback,
+     * crops user selection, and triggers upload.
      */
-    public func captureInteractiveScreenshot(onCaptured: @escaping @Sendable (URL) -> Void) {
+    public func captureInteractiveScreenshot(
+        onCaptured: @escaping @Sendable (URL) -> Void,
+        onPermissionNeeded: (@Sendable () -> Void)? = nil
+    ) {
         ScreenSelectionOverlay.shared.startInteractiveCapture { pngData in
-            guard let data = pngData, !data.isEmpty else { return }
+            guard let data = pngData, !data.isEmpty else {
+                onPermissionNeeded?()
+                return
+            }
 
             let tempDir = FileManager.default.temporaryDirectory
             let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")

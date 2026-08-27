@@ -119,12 +119,23 @@ public final class StatusBarManager: NSObject {
     }
 
     @objc private func captureScreenshotAction() {
-        ScreenshotManager.shared.captureInteractiveScreenshot { [weak self] tempUrl in
-            Task { @MainActor in
-                await self?.viewModel?.uploadFile(url: tempUrl)
-                try? FileManager.default.removeItem(at: tempUrl)
+        ScreenshotManager.shared.captureInteractiveScreenshot(
+            onCaptured: { [weak self] tempUrl in
+                Task { @MainActor in
+                    await self?.viewModel?.uploadFile(url: tempUrl)
+                    try? FileManager.default.removeItem(at: tempUrl)
+                }
+            },
+            onPermissionNeeded: { [weak self] in
+                Task { @MainActor in
+                    self?.viewModel?.showToast(
+                        title: "Screen Recording Permission",
+                        message: "Please ensure StaticRe is enabled in System Settings > Privacy & Security > Screen Recording.",
+                        isError: true
+                    )
+                }
             }
-        }
+        )
     }
 
     @objc private func pasteClipboardAction() {

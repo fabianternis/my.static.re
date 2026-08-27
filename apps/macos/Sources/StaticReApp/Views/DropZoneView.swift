@@ -60,12 +60,23 @@ struct DropZoneView: View {
                     .keyboardShortcut("v", modifiers: .command)
 
                     Button(action: {
-                        ScreenshotManager.shared.captureInteractiveScreenshot { tempUrl in
-                            Task { @MainActor in
-                                await viewModel.uploadFile(url: tempUrl)
-                                try? FileManager.default.removeItem(at: tempUrl)
+                        ScreenshotManager.shared.captureInteractiveScreenshot(
+                            onCaptured: { tempUrl in
+                                Task { @MainActor in
+                                    await viewModel.uploadFile(url: tempUrl)
+                                    try? FileManager.default.removeItem(at: tempUrl)
+                                }
+                            },
+                            onPermissionNeeded: {
+                                Task { @MainActor in
+                                    viewModel.showToast(
+                                        title: "Screen Recording Permission",
+                                        message: "Please ensure StaticRe is enabled in System Settings > Privacy & Security > Screen Recording.",
+                                        isError: true
+                                    )
+                                }
                             }
-                        }
+                        )
                     }) {
                         Label("Screenshot", systemImage: "camera.fill")
                             .fontWeight(.medium)
