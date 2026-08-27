@@ -20,7 +20,7 @@ healthRouter.get("/", async (c) => {
     r2Status = "disconnected";
   }
 
-  const response: HealthResponse = {
+  const response: HealthResponse & { envKeys?: string[] } = {
     status: r2Status === "connected" ? "ok" : "degraded",
     timestamp: new Date().toISOString(),
     version: "0.1.0",
@@ -28,6 +28,7 @@ healthRouter.get("/", async (c) => {
     services: {
       r2Bucket: r2Status,
     },
+    envKeys: Object.keys(c.env || {}),
   };
 
   return c.json(response, response.status === "ok" ? 200 : 503);
